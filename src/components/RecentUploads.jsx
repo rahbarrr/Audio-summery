@@ -1,22 +1,68 @@
-import { useState } from 'react';
-import { History, FileAudio, ChevronRight, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { History, FileAudio, ChevronRight, Trash2, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
-export default function RecentUploads({ onSelectRecord }) {
-  const [recentItems, setRecentItems] = useState(() => {
-    try {
-      const stored = localStorage.getItem('audio_summarizer_recent');
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
+export default function RecentUploads({ onSelectRecord, user }) {
+  const [recentItems, setRecentItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadRecent() {
+      if (user && user.id) {
+        setLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from('audio_files')
+            .select('id, file_name, created_at, status')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+          if (!error && data && isMounted) {
+            setRecentItems(
+              data.map((item) => ({
+                id: item.id,
+                name: item.file_name,
+                date: item.created_at,
+                status: item.status,
+              }))
+            );
+          }
+        } catch (err) {
+          console.warn('Error fetching user audio history:', err);
+        } finally {
+          if (isMounted) setLoading(false);
+        }
+      } else {
+        // Fallback to local storage for guests
+        try {
+          const stored = localStorage.getItem('audio_summarizer_recent');
+          if (stored && isMounted) {
+            setRecentItems(JSON.parse(stored));
+          }
+        } catch {
+          if (isMounted) setRecentItems([]);
+        }
+      }
     }
-  });
+
+    loadRecent();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   const handleClear = () => {
     localStorage.removeItem('audio_summarizer_recent');
-    setRecentItems([]);
+    if (!user) {
+      setRecentItems([]);
+    }
   };
 
-  if (!recentItems || recentItems.length === 0) {
+  if (!loading && (!recentItems || recentItems.length === 0)) {
     return null;
   }
 
@@ -25,26 +71,28 @@ export default function RecentUploads({ onSelectRecord }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>
           <History size={16} />
-          <span>Recently Uploaded</span>
+          <span>{user ? 'Your Saved Summaries' : 'Recently Uploaded'}</span>
         </div>
-        <button
-          type="button"
-          onClick={handleClear}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-muted)',
-            fontSize: '0.8rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.25rem'
-          }}
-          title="Clear recent list"
-        >
-          <Trash2 size={13} />
-          <span>Clear history</span>
-        </button>
+        {!user && (
+          <button
+            type="button"
+            onClick={handleClear}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem'
+            }}
+            title="Clear recent list"
+          >
+            <Trash2 size={13} />
+            <span>Clear history</span>
+          </button>
+        )}
       </div>
 
       <div className="recent-list">
@@ -71,7 +119,18 @@ export default function RecentUploads({ onSelectRecord }) {
                 </div>
               </div>
             </div>
-            <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {item.status && (
+                <span className={`status-badge ${item.status}`} style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>
+                  {item.status === 'completed' && <CheckCircle2 size={12} />}
+                  {item.status === 'processing' && <Clock size={12} />}
+                  {item.status === 'failed' && <AlertTriangle size={12} />}
+                  <span>{item.status}</span>
+                </span>
+              )}
+              <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
+            </div>
           </div>
         ))}
       </div>

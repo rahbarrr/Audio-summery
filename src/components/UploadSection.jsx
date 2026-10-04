@@ -13,7 +13,7 @@ function formatFileSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-export default function UploadSection({ onUploadComplete }) {
+export default function UploadSection({ onUploadComplete, user, onOpenAuth }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadStep, setUploadStep] = useState(null); // 'uploading' | 'saving' | 'triggering'
@@ -89,13 +89,19 @@ export default function UploadSection({ onUploadComplete }) {
 
       // Step 2: Insert record into Supabase PostgreSQL table 'audio_files'
       setUploadStep('saving');
+      const insertPayload = {
+        file_name: selectedFile.name,
+        file_path: storagePath,
+        status: 'uploaded',
+      };
+
+      if (user && user.id) {
+        insertPayload.user_id = user.id;
+      }
+
       const { data: dbData, error: dbError } = await supabase
         .from('audio_files')
-        .insert({
-          file_name: selectedFile.name,
-          file_path: storagePath,
-          status: 'uploaded',
-        })
+        .insert(insertPayload)
         .select()
         .single();
 
@@ -142,6 +148,20 @@ export default function UploadSection({ onUploadComplete }) {
 
   return (
     <div className="card">
+      {!user && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.9rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', marginBottom: '1.25rem', fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
+          <span>💡 Want to access your summaries across devices?</span>
+          <button 
+            type="button" 
+            className="auth-link-btn" 
+            onClick={onOpenAuth}
+            style={{ fontWeight: 600 }}
+          >
+            Sign in or create account
+          </button>
+        </div>
+      )}
+
       {!isSupabaseConfigured && (
         <div className="alert alert-warning" style={{ marginBottom: '1.5rem' }}>
           <AlertCircle size={20} style={{ flexShrink: 0 }} />

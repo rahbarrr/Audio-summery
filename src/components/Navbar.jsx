@@ -1,6 +1,6 @@
-import { Mic, Plus } from 'lucide-react';
+import { Mic, Plus, LogIn, LogOut, User } from 'lucide-react';
 
-export default function Navbar({ onNewUpload, currentRecordId }) {
+export default function Navbar({ onNewUpload, currentRecordId, user, onOpenAuth, onSignOut }) {
   return (
     <header className="app-header">
       <div className="header-inner">
@@ -26,10 +26,41 @@ export default function Navbar({ onNewUpload, currentRecordId }) {
               className="btn btn-secondary btn-sm"
               onClick={onNewUpload}
             >
-              <Plus size={16} />
+              <Plus size={15} />
               <span>New Upload</span>
             </button>
           )}
+
+          {user ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div 
+                className="user-pill"
+                title={user.email}
+              >
+                <User size={14} />
+                <span className="user-email-text">{user.email?.split('@')[0]}</span>
+              </div>
+              <button 
+                type="button" 
+                className="btn btn-secondary btn-sm"
+                onClick={onSignOut}
+                title="Sign out"
+              >
+                <LogOut size={14} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          ) : (
+            <button 
+              type="button" 
+              className="btn btn-secondary btn-sm"
+              onClick={onOpenAuth}
+            >
+              <LogIn size={15} />
+              <span>Sign In</span>
+            </button>
+          )}
+
           <span className="header-badge">AI Powered</span>
         </div>
       </div>
