@@ -99,11 +99,28 @@ export default function UploadSection({ onUploadComplete, user, onOpenAuth }) {
         insertPayload.user_id = user.id;
       }
 
-      const { data: dbData, error: dbError } = await supabase
+      let { data: dbData, error: dbError } = await supabase
         .from('audio_files')
         .insert(insertPayload)
         .select()
         .single();
+
+      // Graceful fallback if user_id column has not been added to Supabase table yet
+      if (dbError && (dbError.message?.includes('user_id') || dbError.code === 'PGRST204')) {
+        console.warn('user_id column not found in database, inserting without user_id...');
+        const fallbackRes = await supabase
+          .from('audio_files')
+          .insert({
+            file_name: selectedFile.name,
+            file_path: storagePath,
+            status: 'uploaded',
+          })
+          .select()
+          .single();
+
+        dbData = fallbackRes.data;
+        dbError = fallbackRes.error;
+      }
 
       if (dbError || !dbData) {
         throw new Error(`Database record creation failed: ${dbError?.message || 'Unknown error'}`);
