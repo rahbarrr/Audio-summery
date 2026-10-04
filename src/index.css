@@ -756,7 +756,7 @@ body {
 
 .form-input {
   width: 100%;
-  padding: 0.65rem 0.85rem 0.65rem 2.4rem;
+  padding: 0.65rem 2.4rem 0.65rem 2.4rem;
   font-size: 0.925rem;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -770,6 +770,25 @@ body {
 .form-input:focus {
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s;
+}
+
+.password-toggle-btn:hover {
+  color: var(--text-primary);
 }
 
 .auth-link-btn {
